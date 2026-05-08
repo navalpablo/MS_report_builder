@@ -557,6 +557,8 @@ const UI = {
     ph_describe: "Describe…",
     ph_free_evolution: "e.g.: 2 new lesions in…",
     ph_free_enhancement: "e.g.: 1 enhancing lesion in…",
+    ph_free_activity: "e.g.: 1 new lesion in left frontal lobe; 1 enhancing lesion in right cerebellum…",
+    ph_activity: "{lesion activity}",
     ph_free_impression: "Free-text impression…",
     date_placeholder: "- - / - - / - - - -"
   },
@@ -641,6 +643,8 @@ const UI = {
     ph_describe: "Describir…",
     ph_free_evolution: "Ej.: 2 lesiones de nueva aparición en…",
     ph_free_enhancement: "Ej.: 1 lesión hipercaptante en…",
+    ph_free_activity: "Ej.: 1 lesión nueva en lóbulo frontal izquierdo; 1 lesión hipercaptante en cerebelo derecho…",
+    ph_activity: "{actividad lesional}",
     ph_free_impression: "Conclusión libre…",
     date_placeholder: "- - / - - / - - - -"
   }
@@ -763,7 +767,15 @@ const TEMPLATES = {
             { k: "med",   v: { en: "medium",   es: "media" } },
             { k: "high",  v: { en: "high",     es: "alta" } },
             { k: "vhigh", v: { en: "very high", es: "muy alta" } }
-          ] }
+          ] },
+        { id: "concl_actividad",
+          label: { en: "Lesion activity", es: "Actividad lesional" },
+          type: "choice-or-text",
+          options: [{ k: "none", v: {
+              en: "No new or enhancing lesions are seen",
+              es: "No se identifican lesiones nuevas ni hipercaptantes"
+            }, neutral: true }],
+          free: { ph: "ph_free_activity", textarea: true } }
       ]}
     ],
     render: (s, pat, lang) => {
@@ -784,6 +796,7 @@ const TEMPLATES = {
       L_.push("");
       L_.push("##H##" + t.rep_impression + "##/H##");
       L_.push(t.rep_followup_brain.replace("{burden}", valOrPh(s, "concl_carga", lang, "ph_burden")));
+      L_.push(valOrPh(s, "concl_actividad", lang, "ph_activity") + ".");
       return L_.join("\n");
     }
   },
@@ -818,16 +831,14 @@ const TEMPLATES = {
             { k: "high",  v: { en: "high",     es: "alta" } },
             { k: "vhigh", v: { en: "very high", es: "muy alta" } }
           ] },
-        { id: "concl_estab",
-          label: { en: "T2 lesion evolution", es: "Evolución lesiones T2" },
+        { id: "concl_actividad",
+          label: { en: "Lesion activity", es: "Actividad lesional" },
           type: "choice-or-text",
-          options: [{ k: "stable", v: { en: "Lesion stability", es: "Estabilidad lesional" }, neutral: true }],
-          free: { ph: "ph_free_evolution" } },
-        { id: "concl_realce",
-          label: { en: "Enhancing lesions", es: "Lesiones hipercaptantes" },
-          type: "choice-or-text",
-          options: [{ k: "none", v: { en: "No enhancing lesions are seen", es: "No se observan lesiones hipercaptantes" }, neutral: true }],
-          free: { ph: "ph_free_enhancement" } }
+          options: [{ k: "none", v: {
+              en: "No new or enhancing lesions are seen",
+              es: "No se identifican lesiones nuevas ni hipercaptantes"
+            }, neutral: true }],
+          free: { ph: "ph_free_activity", textarea: true } }
       ]}
     ],
     render: (s, pat, lang) => {
@@ -865,8 +876,7 @@ const TEMPLATES = {
       L_.push(t.rep_followup_brainspine
               .replace("{diagnosis}", valOrPh(s, "concl_dx", lang, "ph_diagnosis"))
               .replace("{burden}", valOrPh(s, "concl_carga", lang, "ph_burden")));
-      L_.push(valOrPh(s, "concl_estab", lang, "ph_evolution") + ".");
-      L_.push(valOrPh(s, "concl_realce", lang, "ph_enhancement") + ".");
+      L_.push(valOrPh(s, "concl_actividad", lang, "ph_activity") + ".");
       return L_.join("\n");
     }
   },
@@ -1006,7 +1016,7 @@ const TEMPLATES = {
 
 /* ===================== State ===================== */
 const state = {
-  lang: "en",
+  lang: "es",
   template: null,
   answers: {},
   patient: { name:"", id:"", date:"", prevBrain:"", prevSpine:"" },
