@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiple Sclerosis Structured MRI Report Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --surface-2: #f1eee6;
+    --ink: #1a1a1a;
+    --ink-soft: #5b5b5b;
+    --ink-muted: #8a8580;
+    --line: #d9d4c8;
+    --line-soft: #e8e3d8;
+    --accent: #2a5d6f;
+    --accent-strong: #1d4a59;
+    --accent-soft: #d8e6ea;
+    --warn: #a64d2a;
+    --good: #2d7a4f;
+    --shadow: 0 1px 2px rgba(20, 16, 8, 0.04), 0 4px 12px rgba(20, 16, 8, 0.04);
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .app {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  header.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .brand .title {
+    font-family: 'Newsreader', serif;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .brand .subtitle {
+    font-size: 11px;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .credit {
+    font-size: 11px;
+    color: var(--ink-muted);
+    letter-spacing: 0.04em;
+    text-align: right;
+  }
+  .credit .by {
+    text-transform: uppercase;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    display: block;
+    font-size: 10px;
+  }
+  .credit .name {
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+
+  /* Language toggle */
+  .lang-toggle {
+    display: inline-flex;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    padding: 2px;
+  }
+  .lang-toggle button {
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    color: var(--ink-muted);
+    border-radius: 99px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .lang-toggle button.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* Template chooser */
+  .tpl-chooser {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .tpl-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    font: inherit;
+    color: var(--ink);
+  }
+  .tpl-card:hover { border-color: var(--accent); }
+  .tpl-card.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .tpl-card .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-muted);
+    letter-spacing: 0.05em;
+  }
+  .tpl-card.selected .num { color: var(--accent-strong); }
+  .tpl-card .name {
+    font-family: 'Newsreader', serif;
+    font-size: 17px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .tpl-card .desc {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-top: 4px;
+  }
+
+  /* Patient bar */
+  .patient-bar {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 18px;
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: 11px;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+  .field input {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    padding: 4px 0;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { border-bottom-color: var(--accent); }
+
+  /* Workspace */
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 18px;
+  }
+  @media (max-width: 1024px) {
+    .workspace { grid-template-columns: 1fr; }
+    .patient-bar { grid-template-columns: 1fr 1fr; }
+    .tpl-chooser { grid-template-columns: 1fr; }
+  }
+
+  .pane {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 18px 12px 18px;
+  }
+  .pane-title {
+    font-family: 'Newsreader', serif;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+  }
+  .pane-subtitle {
+    font-size: 12px;
+    color: var(--ink-muted);
+    margin-bottom: 14px;
+  }
+
+  /* Section heading inside form */
+  .form-section {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line-soft);
+  }
+  .form-section:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  .form-section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-strong);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  /* Question */
+  .q {
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--line-soft);
+  }
+  .q:last-child { border-bottom: none; }
+  .q-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .q-label {
+    flex: 0 0 200px;
+    font-size: 13px;
+    color: var(--ink);
+    padding-top: 6px;
+  }
+  .q-label .opt-tag {
+    font-size: 10px;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 6px;
+  }
+  .q-input {
+    flex: 1 1 320px;
+    min-width: 240px;
+  }
+  .q-input .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .opt-btn {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 5px 10px;
+    font: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.1s;
+    user-select: none;
+  }
+  .opt-btn:hover { border-color: var(--accent); }
+  .opt-btn.selected {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .opt-btn.selected.neutral {
+    background: var(--surface-2);
+    color: var(--ink);
+    border-color: var(--ink-muted);
+  }
+  .text-input, textarea.text-input {
+    font: inherit;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 6px 8px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .text-input:focus { border-color: var(--accent); }
+  textarea.text-input { resize: vertical; min-height: 38px; font-family: inherit; }
+  .free-after { margin-top: 6px; }
+
+  /* Preview */
+  .preview-wrap { position: sticky; top: 12px; }
+  .preview {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    color: var(--ink);
+    min-height: 380px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .preview .h {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    color: var(--accent-strong);
+    letter-spacing: 0.04em;
+  }
+  .preview .ph {
+    color: var(--ink-muted);
+    background: var(--surface);
+    border-bottom: 1px dotted var(--ink-muted);
+    padding: 0 2px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font: inherit;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius);
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-strong); }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid transparent;
+  }
+  .btn-ghost:hover { color: var(--warn); border-color: var(--line); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--ink);
+    color: white;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.25s;
+    z-index: 100;
+    font-size: 13px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--good); }
+  .toast.error { background: var(--warn); }
+
+  .empty-state {
+    color: var(--ink-muted);
+    text-align: center;
+    padding: 60px 20px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="top">
+  <div class="brand">
+    <div class="title" id="brandTitle">Multiple Sclerosis Structured MRI Report Builder</div>
+    <div class="subtitle" id="brandSubtitle">Structured MRI report templates</div>
+  </div>
+  <div class="header-right">
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button type="button" data-lang="en" id="langEn" class="active">EN</button>
+      <button type="button" data-lang="es" id="langEs">ES</button>
+    </div>
+    <div class="credit">
+      <span class="by" id="creditBy">Created by</span>
+      <span class="name">Pablo Naval Baudín</span>
+    </div>
+  </div>
+</header>
+
+<!-- Template chooser -->
+<div class="tpl-chooser" id="tplChooser"></div>
+
+<!-- Patient bar -->
+<div class="patient-bar" id="patientBar">
+  <div class="field">
+    <label data-i18n="lbl_patient">Patient</label>
+    <input type="text" id="pName" data-i18n-ph="ph_patient">
+  </div>
+  <div class="field">
+    <label data-i18n="lbl_id">MRN / ID</label>
+    <input type="text" id="pId" data-i18n-ph="ph_id">
+  </div>
+  <div class="field">
+    <label data-i18n="lbl_examdate">Exam date</label>
+    <input type="date" id="pDate">
+  </div>
+  <div class="field">
+    <label data-i18n="lbl_prevbrain">Prior brain MRI date</label>
+    <input type="date" id="pPrevBrain">
+  </div>
+  <div class="field" id="prevSpineWrap" style="display:none">
+    <label data-i18n="lbl_prevspine">Prior spine MRI date</label>
+    <input type="date" id="pPrevSpine">
+  </div>
+</div>
+
+<div class="workspace">
+  <div class="pane">
+    <h2 class="pane-title" data-i18n="form_title">Form</h2>
+    <p class="pane-subtitle" id="paneSubtitle" data-i18n="pick_to_start">Select a template to begin.</p>
+    <div id="form">
+      <div class="empty-state" data-i18n="pick_above">Choose a template above ↑</div>
+    </div>
+  </div>
+
+  <div class="preview-wrap">
+    <div class="pane">
+      <h2 class="pane-title" data-i18n="preview_title">Preview</h2>
+      <p class="pane-subtitle" data-i18n="preview_subtitle">Report text (live).</p>
+      <div class="preview" id="preview"><span class="ph" data-i18n="preview_empty">— empty —</span></div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btnCopy" data-i18n="btn_copy">⧉ Copy text</button>
+        <button class="btn btn-secondary" id="btnDownload" data-i18n="btn_download">↓ Download .txt</button>
+        <button class="btn btn-ghost" id="btnReset" data-i18n="btn_reset">Clear form</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ===================== UI strings ===================== */
+const UI = {
+  en: {
+    appTitle: "Multiple Sclerosis Structured MRI Report Builder",
+    appSubtitle: "Structured MRI report templates",
+    creditBy: "Created by",
+    lbl_patient: "Patient",
+    ph_patient: "Full name",
+    lbl_id: "MRN / ID",
+    ph_id: "Identifier",
+    lbl_examdate: "Exam date",
+    lbl_prevbrain: "Prior brain MRI date",
+    lbl_prevspine: "Prior spine MRI date",
+    form_title: "Form",
+    pick_to_start: "Select a template to begin.",
+    pick_above: "Choose a template above ↑",
+    preview_title: "Preview",
+    preview_subtitle: "Report text (live).",
+    preview_empty: "— empty —",
+    btn_copy: "⧉ Copy text",
+    btn_download: "↓ Download .txt",
+    btn_reset: "Clear form",
+    free_text: "Free text…",
+    optional_tag: "optional",
+    confirm_reset: "Clear all form fields?",
+    toast_reset: "Form cleared",
+    toast_copied: "Text copied to clipboard",
+    toast_copyfail: "Could not copy",
+    toast_pickfirst: "Select a template first",
+    section_technique: "Technique",
+    seq_brain: "Brain sequences performed",
+    seq_spine: "Spine sequences performed",
+    seq_custom_ph: "Or describe full technique (overrides chips)…",
+    section_brain: "Brain MRI",
+    section_spine: "Spine MRI",
+    section_demyelinating: "Demyelinating lesions",
+    section_burden_enhancement: "Burden & enhancement",
+    section_atrophy: "Atrophy",
+    section_conclusion: "Impression",
+    rep_technique: "TECHNIQUE",
+    rep_comparison: "COMPARISON",
+    rep_findings: "FINDINGS",
+    rep_brain: "BRAIN MRI",
+    rep_spine: "SPINE MRI",
+    rep_impression: "IMPRESSION",
+    rep_brain_with: "Brain MRI with",
+    rep_spine_with: "Whole-spine MRI with sagittal and axial",
+    rep_brain_prev: "Prior brain MRI dated",
+    rep_spine_prev: "and prior spine MRI dated",
+    rep_no_comparison: "No prior study available for comparison.",
+    rep_followup_brain: "Follow-up brain MRI for multiple sclerosis, with a {burden} lesion burden.",
+    rep_followup_brainspine: "Follow-up brain and spine MRI of {diagnosis}, with a {burden} lesion burden.",
+    rep_protocol_intro: "MRI protocol of the brain and spine for diagnosis of multiple sclerosis:",
+    rep_demyelinating: "Demyelinating lesions:",
+    rep_periventricular: "Periventricular",
+    rep_juxtacortical: "Juxtacortical/cortical",
+    rep_infratentorial: "Infratentorial",
+    rep_optic_nerve: "Optic nerve",
+    rep_spinal_cord: "Spinal cord",
+    rep_enhancing: "Enhancing lesions",
+    rep_total_burden: "Total lesion burden",
+    rep_parenchymal_atrophy: "Parenchymal atrophy",
+    rep_cc_atrophy: "Corpus callosum atrophy",
+    rep_new_t2: "New T2-hyperintense lesions",
+    rep_new_t2_stir: "New T2/STIR-hyperintense lesions",
+    rep_total_lesions: "Total lesions",
+    rep_infra_involvement: "Infratentorial involvement",
+    rep_other: "Other findings",
+    rep_pml: "Signs suggestive of PML",
+    rep_period: ".",
+    ph_burden: "{burden}",
+    ph_diagnosis: "{diagnosis}",
+    ph_evolution: "{lesion evolution}",
+    ph_enhancement: "{enhancement}",
+    ph_impression: "{impression}",
+    ph_other: "{other findings}",
+    ph_default: "...",
+    ph_count_loc: "Number and location…",
+    ph_describe_other: "Describe other findings…",
+    ph_describe_pml: "Describe suggestive signs…",
+    ph_describe: "Describe…",
+    ph_free_evolution: "e.g.: 2 new lesions in…",
+    ph_free_enhancement: "e.g.: 1 enhancing lesion in…",
+    ph_free_impression: "Free-text impression…",
+    date_placeholder: "- - / - - / - - - -"
+  },
+  es: {
+    appTitle: "Generador de informes estructurados de RM en Esclerosis Múltiple",
+    appSubtitle: "Plantillas estructuradas de RM",
+    creditBy: "Creado por",
+    lbl_patient: "Paciente",
+    ph_patient: "Nombre y apellidos",
+    lbl_id: "NHC / ID",
+    ph_id: "Identificador",
+    lbl_examdate: "Fecha exploración",
+    lbl_prevbrain: "Fecha previa (cerebro)",
+    lbl_prevspine: "Fecha previa (columna)",
+    form_title: "Formulario",
+    pick_to_start: "Selecciona una plantilla para empezar.",
+    pick_above: "Elige una plantilla arriba ↑",
+    preview_title: "Vista previa",
+    preview_subtitle: "Texto del informe (se actualiza al rellenar).",
+    preview_empty: "— sin contenido —",
+    btn_copy: "⧉ Copiar texto",
+    btn_download: "↓ Descargar .txt",
+    btn_reset: "Vaciar formulario",
+    free_text: "Texto libre…",
+    optional_tag: "opcional",
+    confirm_reset: "¿Vaciar todos los campos del formulario?",
+    toast_reset: "Formulario vaciado",
+    toast_copied: "Texto copiado al portapapeles",
+    toast_copyfail: "No se pudo copiar",
+    toast_pickfirst: "Selecciona una plantilla primero",
+    section_technique: "Técnica",
+    seq_brain: "Secuencias cerebrales realizadas",
+    seq_spine: "Secuencias de columna realizadas",
+    seq_custom_ph: "O describir técnica completa (sustituye los chips)…",
+    section_brain: "RM cerebral",
+    section_spine: "RM de columna",
+    section_demyelinating: "Lesiones desmielinizantes",
+    section_burden_enhancement: "Carga y realce",
+    section_atrophy: "Atrofia",
+    section_conclusion: "Conclusión",
+    rep_technique: "TÉCNICA",
+    rep_comparison: "COMPARATIVA",
+    rep_findings: "HALLAZGOS",
+    rep_brain: "RM CEREBRAL",
+    rep_spine: "RM DE COLUMNA",
+    rep_impression: "CONCLUSIONES",
+    rep_brain_with: "RM cerebral con",
+    rep_spine_with: "RM de columna completa con adquisiciones sagitales y axiales",
+    rep_brain_prev: "RM cerebral del día",
+    rep_spine_prev: "y RM de columna del día",
+    rep_no_comparison: "No se dispone de estudio previo para comparación.",
+    rep_followup_brain: "Estudio de seguimiento de esclerosis múltiple, con carga lesional {burden}.",
+    rep_followup_brainspine: "Estudio cerebral y de columna de seguimiento de {diagnosis}, con carga lesional {burden}.",
+    rep_protocol_intro: "Se realiza protocolo RM de cerebro y columna con contraste para diagnóstico de esclerosis múltiple:",
+    rep_demyelinating: "Lesiones desmielinizantes:",
+    rep_periventricular: "Periventriculares",
+    rep_juxtacortical: "Yuxtacorticales/corticales",
+    rep_infratentorial: "Infratentoriales",
+    rep_optic_nerve: "Nervio óptico",
+    rep_spinal_cord: "Cordón medular",
+    rep_enhancing: "Lesiones hipercaptantes",
+    rep_total_burden: "Carga lesional global",
+    rep_parenchymal_atrophy: "Atrofia parenquimatosa",
+    rep_cc_atrophy: "Atrofia del cuerpo calloso",
+    rep_new_t2: "Nuevas lesiones hiperintensas en T2",
+    rep_new_t2_stir: "Nuevas lesiones hiperintensas en T2/STIR",
+    rep_total_lesions: "Lesiones totales",
+    rep_infra_involvement: "Afectación infratentorial",
+    rep_other: "Otros hallazgos",
+    rep_pml: "Signos de posible LMP",
+    rep_period: ".",
+    ph_burden: "{carga}",
+    ph_diagnosis: "{diagnóstico}",
+    ph_evolution: "{evolución lesional}",
+    ph_enhancement: "{realce}",
+    ph_impression: "{conclusión}",
+    ph_other: "{otros hallazgos}",
+    ph_default: "...",
+    ph_count_loc: "Número y localización…",
+    ph_describe_other: "Describir otros hallazgos…",
+    ph_describe_pml: "Describir signos sugestivos…",
+    ph_describe: "Describir…",
+    ph_free_evolution: "Ej.: 2 lesiones de nueva aparición en…",
+    ph_free_enhancement: "Ej.: 1 lesión hipercaptante en…",
+    ph_free_impression: "Conclusión libre…",
+    date_placeholder: "- - / - - / - - - -"
+  }
+};
+
+/* Bilingual helper: pull a string in current lang from {en, es} object */
+function L(obj) {
+  if (obj == null) return "";
+  if (typeof obj === "string") return obj;
+  return obj[state.lang] != null ? obj[state.lang] : (obj.en != null ? obj.en : "");
+}
+
+/* ===================== Sequence catalog ===================== */
+const BRAIN_SEQS = ["T1", "T2", "FLAIR", "T1 gad", "DWI", "SWI"];
+const SPINE_SEQS = ["T1", "T2", "T1 gad", "STIR"];
+
+/* ===================== Field libraries ===================== */
+const COMMON_BRAIN_FIELDS = [
+  { id: "nuevas_t2",
+    label: { en: "New T2-hyperintense lesions", es: "Nuevas lesiones hiperintensas en T2" },
+    type: "choice-or-text",
+    options: [{ k: "none", v: { en: "NONE", es: "NINGUNA" }, neutral: true }],
+    free: { ph: "ph_count_loc" } },
+  { id: "hipercaptantes",
+    label: { en: "Enhancing lesions", es: "Lesiones hipercaptantes" },
+    type: "choice-or-text",
+    options: [{ k: "none", v: { en: "NONE", es: "NINGUNA" }, neutral: true }],
+    free: { ph: "ph_count_loc" } },
+  { id: "carga",
+    label: { en: "Total lesion burden", es: "Carga lesional global" },
+    type: "choice",
+    options: [
+      { k: "low",   v: { en: "Low (<10 lesions)",       es: "Baja (<10 lesiones)" } },
+      { k: "med",   v: { en: "Medium (10-20 lesions)",  es: "Media (10-20 lesiones)" } },
+      { k: "high",  v: { en: "High (20-50 lesions)",    es: "Alta (20-50 lesiones)" } },
+      { k: "vhigh", v: { en: "Very high (extensive confluent)", es: "Muy alta (extensa confluyente)" } }
+    ] },
+  { id: "infratentorial",
+    label: { en: "Infratentorial involvement", es: "Afectación infratentorial" },
+    type: "choice",
+    options: [
+      { k: "yes", v: { en: "Yes", es: "Sí" } },
+      { k: "no",  v: { en: "No",  es: "No" }, neutral: true }
+    ] },
+  { id: "atrofia_par",
+    label: { en: "Parenchymal atrophy", es: "Atrofia parenquimatosa" },
+    type: "choice",
+    options: [
+      { k: "no",  v: { en: "None",     es: "No" }, neutral: true },
+      { k: "mild",v: { en: "Mild",     es: "Leve" } },
+      { k: "mod", v: { en: "Moderate", es: "Moderada" } },
+      { k: "sev", v: { en: "Severe",   es: "Grave" } }
+    ] },
+  { id: "atrofia_cc",
+    label: { en: "Corpus callosum atrophy", es: "Atrofia del cuerpo calloso" },
+    type: "choice",
+    options: [
+      { k: "no",  v: { en: "None",     es: "No" }, neutral: true },
+      { k: "mild",v: { en: "Mild",     es: "Leve" } },
+      { k: "mod", v: { en: "Moderate", es: "Moderada" } },
+      { k: "sev", v: { en: "Severe",   es: "Grave" } }
+    ] },
+  { id: "otros",
+    label: { en: "Other findings", es: "Otros hallazgos" },
+    type: "choice-or-text",
+    options: [{ k: "none", v: { en: "None", es: "Ninguno" }, neutral: true }],
+    free: { ph: "ph_describe_other", textarea: true } },
+  { id: "lmp",
+    label: { en: "Signs suggestive of PML", es: "Signos de posible LMP" },
+    optional: true,
+    type: "choice-or-text",
+    options: [{ k: "no", v: { en: "No", es: "No" }, neutral: true }],
+    free: { ph: "ph_describe_pml", textarea: true } }
+];
+
+const SPINE_FIELDS = [
+  { id: "med_nuevas",
+    label: { en: "New T2/STIR-hyperintense lesions", es: "Nuevas lesiones T2/STIR" },
+    type: "choice-or-text",
+    options: [{ k: "none", v: { en: "NONE", es: "NINGUNA" }, neutral: true }],
+    free: { ph: "ph_count_loc" } },
+  { id: "med_totales",
+    label: { en: "Total lesions", es: "Lesiones totales" },
+    type: "choice-or-text",
+    options: [{ k: "none", v: { en: "NONE", es: "NINGUNA" }, neutral: true }],
+    free: { ph: "ph_count_loc" } },
+  { id: "med_hipercap",
+    label: { en: "Enhancing lesions", es: "Lesiones hipercaptantes" },
+    type: "choice-or-text",
+    options: [{ k: "none", v: { en: "NONE", es: "NINGUNA" }, neutral: true }],
+    free: { ph: "ph_count_loc" } },
+  { id: "med_otros",
+    label: { en: "Other findings", es: "Otros hallazgos" },
+    type: "choice-or-text",
+    options: [{ k: "none", v: { en: "None", es: "Ninguno" }, neutral: true }],
+    free: { ph: "ph_describe", textarea: true } }
+];
+
+/* ===================== Templates ===================== */
+const TEMPLATES = {
+
+  brain_seg: {
+    card: {
+      num:  { en: "1.0 · Follow-up",        es: "1.0 · Seguimiento" },
+      name: { en: "Brain MRI",              es: "RM cerebral" },
+      desc: { en: "MS follow-up, brain only", es: "Seguimiento EM, solo cerebro" }
+    },
+    title:    { en: "Brain MRI follow-up",            es: "Seguimiento RM cerebral" },
+    subtitle: { en: "Multiple sclerosis — brain only", es: "Esclerosis múltiple — solo cerebro" },
+    needsSpinePrev: false,
+    sequences: { brain: true, spine: false },
+    sections: [
+      { titleKey: "section_brain", fields: COMMON_BRAIN_FIELDS },
+      { titleKey: "section_conclusion", fields: [
+        { id: "concl_carga",
+          label: { en: "Lesion burden (impression)", es: "Carga lesional (conclusión)" },
+          type: "choice",
+          options: [
+            { k: "low",   v: { en: "low",      es: "baja" } },
+            { k: "med",   v: { en: "medium",   es: "media" } },
+            { k: "high",  v: { en: "high",     es: "alta" } },
+            { k: "vhigh", v: { en: "very high", es: "muy alta" } }
+          ] }
+      ]}
+    ],
+    render: (s, pat, lang) => {
+      const t = UI[lang];
+      const L_ = [];
+      L_.push(t.rep_technique + ": " + buildTechnique(s, pat, lang, "brain") + ".");
+      L_.push(t.rep_comparison + ": " + (pat.prevBrain ? (t.rep_brain_prev + " " + dateOrPh(pat.prevBrain) + ".") : t.rep_no_comparison));
+      L_.push("");
+      L_.push("##H##" + t.rep_findings + "##/H##");
+      L_.push("- " + t.rep_new_t2 + ": " + valOrPh(s, "nuevas_t2", lang));
+      L_.push("- " + t.rep_enhancing + ": " + valOrPh(s, "hipercaptantes", lang));
+      L_.push("- " + t.rep_total_burden + ": " + valOrPh(s, "carga", lang));
+      L_.push("- " + t.rep_infra_involvement + ": " + valOrPh(s, "infratentorial", lang));
+      L_.push("- " + t.rep_parenchymal_atrophy + ": " + valOrPh(s, "atrofia_par", lang));
+      L_.push("- " + t.rep_cc_atrophy + ": " + valOrPh(s, "atrofia_cc", lang));
+      L_.push("- " + t.rep_other + ": " + valOrPh(s, "otros", lang));
+      if (s.lmp) L_.push("- " + t.rep_pml + ": " + displayValue(s, "lmp", lang));
+      L_.push("");
+      L_.push("##H##" + t.rep_impression + "##/H##");
+      L_.push(t.rep_followup_brain.replace("{burden}", valOrPh(s, "concl_carga", lang, "ph_burden")));
+      return L_.join("\n");
+    }
+  },
+
+  brain_spine_seg: {
+    card: {
+      num:  { en: "1.1 · Follow-up",         es: "1.1 · Seguimiento" },
+      name: { en: "Brain + spine MRI",       es: "RM cerebro + columna" },
+      desc: { en: "MS follow-up, brain & spine", es: "Seguimiento EM, cerebro y columna" }
+    },
+    title:    { en: "Brain + spine MRI follow-up",       es: "Seguimiento RM cerebro + columna" },
+    subtitle: { en: "Multiple sclerosis — brain & spine", es: "Esclerosis múltiple — cerebro y columna" },
+    needsSpinePrev: true,
+    sequences: { brain: true, spine: true },
+    sections: [
+      { titleKey: "section_brain", fields: COMMON_BRAIN_FIELDS },
+      { titleKey: "section_spine", fields: SPINE_FIELDS },
+      { titleKey: "section_conclusion", fields: [
+        { id: "concl_dx",
+          label: { en: "Diagnosis", es: "Diagnóstico" },
+          type: "choice",
+          options: [
+            { k: "ms",  v: { en: "multiple sclerosis", es: "esclerosis múltiple" } },
+            { k: "ris", v: { en: "radiologically isolated syndrome", es: "síndrome radiológico aislado" } }
+          ] },
+        { id: "concl_carga",
+          label: { en: "Lesion burden", es: "Carga lesional" },
+          type: "choice",
+          options: [
+            { k: "low",   v: { en: "low",      es: "baja" } },
+            { k: "med",   v: { en: "medium",   es: "media" } },
+            { k: "high",  v: { en: "high",     es: "alta" } },
+            { k: "vhigh", v: { en: "very high", es: "muy alta" } }
+          ] },
+        { id: "concl_estab",
+          label: { en: "T2 lesion evolution", es: "Evolución lesiones T2" },
+          type: "choice-or-text",
+          options: [{ k: "stable", v: { en: "Lesion stability", es: "Estabilidad lesional" }, neutral: true }],
+          free: { ph: "ph_free_evolution" } },
+        { id: "concl_realce",
+          label: { en: "Enhancing lesions", es: "Lesiones hipercaptantes" },
+          type: "choice-or-text",
+          options: [{ k: "none", v: { en: "No enhancing lesions are seen", es: "No se observan lesiones hipercaptantes" }, neutral: true }],
+          free: { ph: "ph_free_enhancement" } }
+      ]}
+    ],
+    render: (s, pat, lang) => {
+      const t = UI[lang];
+      const L_ = [];
+      const brainTech = buildTechnique(s, pat, lang, "brain");
+      const spineTech = buildTechniqueSpine(s, pat, lang);
+      L_.push(t.rep_technique + ": " + brainTech + ". " + spineTech + ".");
+      const compParts = [];
+      if (pat.prevBrain) compParts.push(t.rep_brain_prev + " " + dateOrPh(pat.prevBrain));
+      if (pat.prevSpine) compParts.push(t.rep_spine_prev + " " + dateOrPh(pat.prevSpine));
+      if (compParts.length) {
+        L_.push(t.rep_comparison + ": " + compParts.join(" ") + ".");
+      } else {
+        L_.push(t.rep_comparison + ": " + t.rep_no_comparison);
+      }
+      L_.push("");
+      L_.push("##H##" + t.rep_brain + "##/H##");
+      L_.push("- " + t.rep_new_t2 + ": " + valOrPh(s, "nuevas_t2", lang));
+      L_.push("- " + t.rep_enhancing + ": " + valOrPh(s, "hipercaptantes", lang));
+      L_.push("- " + t.rep_total_burden + ": " + valOrPh(s, "carga", lang));
+      L_.push("- " + t.rep_infra_involvement + ": " + valOrPh(s, "infratentorial", lang));
+      L_.push("- " + t.rep_parenchymal_atrophy + ": " + valOrPh(s, "atrofia_par", lang));
+      L_.push("- " + t.rep_cc_atrophy + ": " + valOrPh(s, "atrofia_cc", lang));
+      L_.push("- " + t.rep_other + ": " + valOrPh(s, "otros", lang));
+      if (s.lmp) L_.push("- " + t.rep_pml + ": " + displayValue(s, "lmp", lang));
+      L_.push("");
+      L_.push("##H##" + t.rep_spine + "##/H##");
+      L_.push("- " + t.rep_new_t2_stir + ": " + valOrPh(s, "med_nuevas", lang));
+      L_.push("- " + t.rep_total_lesions + ": " + valOrPh(s, "med_totales", lang));
+      L_.push("- " + t.rep_enhancing + ": " + valOrPh(s, "med_hipercap", lang));
+      L_.push("- " + t.rep_other + ": " + valOrPh(s, "med_otros", lang));
+      L_.push("");
+      L_.push("##H##" + t.rep_impression + "##/H##");
+      L_.push(t.rep_followup_brainspine
+              .replace("{diagnosis}", valOrPh(s, "concl_dx", lang, "ph_diagnosis"))
+              .replace("{burden}", valOrPh(s, "concl_carga", lang, "ph_burden")));
+      L_.push(valOrPh(s, "concl_estab", lang, "ph_evolution") + ".");
+      L_.push(valOrPh(s, "concl_realce", lang, "ph_enhancement") + ".");
+      return L_.join("\n");
+    }
+  },
+
+  brain_spine_dx: {
+    card: {
+      num:  { en: "1.2 · Diagnostic",  es: "1.2 · Diagnóstico" },
+      name: { en: "Brain + spine MRI", es: "RM cráneo-columna" },
+      desc: { en: "MS diagnostic protocol", es: "Estudio diagnóstico de EM" }
+    },
+    title:    { en: "Brain + spine diagnostic MRI",    es: "Diagnóstico RM cráneo-columna" },
+    subtitle: { en: "Multiple sclerosis diagnostic protocol", es: "Protocolo diagnóstico de esclerosis múltiple" },
+    needsSpinePrev: false,
+    sequences: { brain: true, spine: true },
+    sections: [
+      { titleKey: "section_demyelinating", fields: [
+        { id: "periv",
+          label: { en: "Periventricular", es: "Periventriculares" },
+          type: "choice",
+          options: [
+            { k: "no",  v: { en: "No",   es: "No" }, neutral: true },
+            { k: "12",  v: { en: "1-2",  es: "1-2" } },
+            { k: "3p",  v: { en: ">3",   es: ">3" } }
+          ] },
+        { id: "yux",
+          label: { en: "Juxtacortical / cortical", es: "Yuxtacorticales / corticales" },
+          type: "choice",
+          options: [
+            { k: "no",  v: { en: "No",      es: "No" }, neutral: true },
+            { k: "yes", v: { en: "Present", es: "Presentes" } }
+          ] },
+        { id: "infra",
+          label: { en: "Infratentorial", es: "Infratentoriales" },
+          type: "choice",
+          options: [
+            { k: "no",     v: { en: "No",                                es: "No" }, neutral: true },
+            { k: "brain",  v: { en: "Present, involving brainstem",      es: "Presentes afectando tronco" } },
+            { k: "cereb",  v: { en: "Present, involving cerebellum",     es: "Presentes afectando cerebelo" } },
+            { k: "both",   v: { en: "Present, involving brainstem and cerebellum", es: "Presentes afectando tronco y cerebelo" } }
+          ] },
+        { id: "no_field",
+          label: { en: "Optic nerve", es: "Nervio óptico" },
+          type: "choice",
+          options: [
+            { k: "no",  v: { en: "No",      es: "No" }, neutral: true },
+            { k: "yes", v: { en: "Present", es: "Presentes" } }
+          ] },
+        { id: "cord",
+          label: { en: "Spinal cord", es: "Cordón medular" },
+          type: "choice",
+          options: [
+            { k: "no",  v: { en: "No",      es: "No" }, neutral: true },
+            { k: "yes", v: { en: "Present", es: "Presentes" } }
+          ] }
+      ]},
+      { titleKey: "section_burden_enhancement", fields: [
+        { id: "hipercap",
+          label: { en: "Enhancing lesions", es: "Lesiones hipercaptantes" },
+          type: "choice-or-text",
+          options: [{ k: "none", v: { en: "None", es: "Ninguna" }, neutral: true }],
+          free: { ph: "ph_count_loc" } },
+        { id: "carga_dx",
+          label: { en: "Total lesion burden", es: "Carga lesional global" },
+          type: "choice",
+          options: [
+            { k: "none", v: { en: "None",         es: "Ninguna" }, neutral: true },
+            { k: "lt10", v: { en: "<10 lesions",  es: "<10 lesiones" } },
+            { k: "1020", v: { en: "10-20 lesions", es: "10-20 lesiones" } },
+            { k: "gt20", v: { en: ">20 lesions",  es: ">20 lesiones" } }
+          ] }
+      ]},
+      { titleKey: "section_atrophy", fields: [
+        { id: "atrofia_par",
+          label: { en: "Parenchymal atrophy", es: "Atrofia parenquimatosa" },
+          type: "choice",
+          options: [
+            { k: "no",  v: { en: "None",     es: "No" }, neutral: true },
+            { k: "mild",v: { en: "Mild",     es: "Leve" } },
+            { k: "mod", v: { en: "Moderate", es: "Moderada" } },
+            { k: "sev", v: { en: "Severe",   es: "Grave" } }
+          ] },
+        { id: "atrofia_cc",
+          label: { en: "Corpus callosum atrophy", es: "Atrofia del cuerpo calloso" },
+          type: "choice",
+          options: [
+            { k: "no",  v: { en: "None",     es: "No" }, neutral: true },
+            { k: "mild",v: { en: "Mild",     es: "Leve" } },
+            { k: "mod", v: { en: "Moderate", es: "Moderada" } },
+            { k: "sev", v: { en: "Severe",   es: "Grave" } }
+          ] }
+      ]},
+      { titleKey: "section_conclusion", fields: [
+        { id: "concl",
+          label: { en: "Impression", es: "Conclusión" },
+          type: "choice-or-text",
+          options: [
+            { k: "normal", v: { en: "Normal brain MRI",
+                                es: "RM cerebral normal" } },
+            { k: "typical", v: { en: "Multiple white matter lesions in a typical distribution, consistent with inflammatory demyelinating disease",
+                                 es: "Múltiples lesiones de sustancia blanca de distribución típica, consistente con enfermedad desmielinizante inflamatoria" } },
+            { k: "atypical", v: { en: "Multiple white matter lesions in an atypical distribution, inconsistent with inflammatory demyelinating disease",
+                                  es: "Múltiples lesiones de sustancia blanca de distribución atípica, inconsistente con enfermedad desmielinizante inflamatoria" } }
+          ],
+          free: { ph: "ph_free_impression", textarea: true } }
+      ]}
+    ],
+    render: (s, pat, lang) => {
+      const t = UI[lang];
+      const L_ = [];
+      const brainTech = buildTechnique(s, pat, lang, "brain");
+      const spineTech = buildTechniqueSpine(s, pat, lang);
+      L_.push(t.rep_technique + ": " + brainTech + ". " + spineTech + ".");
+      L_.push("");
+      L_.push("##H##" + t.rep_findings + "##/H##");
+      L_.push("");
+      L_.push(t.rep_protocol_intro);
+      L_.push("");
+      L_.push(t.rep_demyelinating);
+      L_.push(" • " + t.rep_periventricular + ": " + valOrPh(s, "periv", lang));
+      L_.push(" • " + t.rep_juxtacortical + ": " + valOrPh(s, "yux", lang));
+      L_.push(" • " + t.rep_infratentorial + ": " + valOrPh(s, "infra", lang));
+      L_.push(" • " + t.rep_optic_nerve + ": " + valOrPh(s, "no_field", lang));
+      L_.push(" • " + t.rep_spinal_cord + ": " + valOrPh(s, "cord", lang));
+      L_.push("");
+      L_.push(t.rep_enhancing + ": " + valOrPh(s, "hipercap", lang));
+      L_.push(t.rep_total_burden + ": " + valOrPh(s, "carga_dx", lang));
+      L_.push("");
+      L_.push(t.rep_parenchymal_atrophy + ": " + valOrPh(s, "atrofia_par", lang));
+      L_.push(t.rep_cc_atrophy + ": " + valOrPh(s, "atrofia_cc", lang));
+      L_.push("");
+      L_.push("##H##" + t.rep_impression + "##/H##");
+      L_.push(valOrPh(s, "concl", lang, "ph_impression") + ".");
+      return L_.join("\n");
+    }
+  }
+};
+
+/* ===================== State ===================== */
+const state = {
+  lang: "en",
+  template: null,
+  answers: {},
+  patient: { name:"", id:"", date:"", prevBrain:"", prevSpine:"" },
+  // sequences: per-template-key memory of selected chips and any custom override
+  sequences: {} // shape: { [tplKey]: { brain: {sel:[...], custom:""}, spine: {sel:[...], custom:""} } }
+};
+
+/* ===================== Helpers ===================== */
+function dateOrPh(iso) {
+  const t = UI[state.lang];
+  if (!iso) return "##PH##" + t.date_placeholder + "##/PH##";
+  const d = new Date(iso + "T00:00:00");
+  if (isNaN(d)) return iso;
+  const dd = String(d.getDate()).padStart(2,"0");
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const yy = d.getFullYear();
+  return dd + "/" + mm + "/" + yy;
+}
+
+/* Look up the display value for a stored answer in current language */
+function displayValue(answers, fieldId, lang) {
+  const ans = answers[fieldId];
+  if (ans == null) return "";
+  if (typeof ans === "object") {
+    if (ans.type === "free") return ans.text || "";
+    if (ans.type === "opt") {
+      const opt = findOption(fieldId, ans.k);
+      if (opt) return L(opt.v);
+      return "";
+    }
+  }
+  return "";
+}
+
+/* Combined: returns value or placeholder wrapped in tags */
+function valOrPh(answers, fieldId, lang, phKey) {
+  const v = displayValue(answers, fieldId, lang);
+  if (v && String(v).trim()) return v;
+  const t = UI[lang];
+  const ph = phKey ? (t[phKey] || t.ph_default) : t.ph_default;
+  return "##PH##" + ph + "##/PH##";
+}
+
+/* Find the option metadata from any field across templates by id+key.
+   Falls back to scanning all template sections. */
+function findOption(fieldId, optKey) {
+  for (const tplKey in TEMPLATES) {
+    const tpl = TEMPLATES[tplKey];
+    for (const sec of tpl.sections) {
+      for (const f of sec.fields) {
+        if (f.id === fieldId && f.options) {
+          const o = f.options.find(o => o.k === optKey);
+          if (o) return o;
+        }
+      }
+    }
+  }
+  // Also search shared field libraries
+  for (const f of COMMON_BRAIN_FIELDS.concat(SPINE_FIELDS)) {
+    if (f.id === fieldId && f.options) {
+      const o = f.options.find(o => o.k === optKey);
+      if (o) return o;
+    }
+  }
+  return null;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]
+  ));
+}
+function previewToHtml(text) {
+  let out = escapeHtml(text);
+  out = out.replace(/##H##(.+?)##\/H##/g, '<span class="h">$1</span>');
+  out = out.replace(/##PH##(.+?)##\/PH##/g, '<span class="ph">$1</span>');
+  return out;
+}
+function plainText(text) {
+  return text.replace(/##H##|##\/H##/g, "").replace(/##PH##|##\/PH##/g, "");
+}
+function showToast(msg, kind) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show " + (kind || "");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { t.className = "toast"; }, 1800);
+}
+
+/* ===================== Sequence builders ===================== */
+function getSeqState(tplKey, area) {
+  if (!state.sequences[tplKey]) state.sequences[tplKey] = {};
+  if (!state.sequences[tplKey][area]) {
+    // Defaults: all sequences selected
+    const defaults = area === "brain" ? BRAIN_SEQS.slice() : SPINE_SEQS.slice();
+    state.sequences[tplKey][area] = { sel: defaults, custom: "" };
+  }
+  return state.sequences[tplKey][area];
+}
+
+function buildTechnique(s, pat, lang, area) {
+  const t = UI[lang];
+  const tplKey = state.template;
+  const seq = getSeqState(tplKey, "brain");
+  if (seq.custom && seq.custom.trim()) return seq.custom.trim();
+  const list = (seq.sel || []).filter(x => x);
+  if (list.length === 0) {
+    return "##PH##" + (t.rep_brain_with) + " ...##/PH##";
+  }
+  return t.rep_brain_with + " " + list.join(", ");
+}
+
+function buildTechniqueSpine(s, pat, lang) {
+  const t = UI[lang];
+  const tplKey = state.template;
+  const seq = getSeqState(tplKey, "spine");
+  if (seq.custom && seq.custom.trim()) return seq.custom.trim();
+  const list = (seq.sel || []).filter(x => x);
+  if (list.length === 0) {
+    return "##PH##" + (t.rep_spine_with) + " ...##/PH##";
+  }
+  return t.rep_spine_with + " " + list.join(", ");
+}
+
+/* ===================== Render: form ===================== */
+function renderForm() {
+  const wrap = document.getElementById("form");
+  wrap.innerHTML = "";
+  const t = UI[state.lang];
+
+  if (!state.template) {
+    wrap.innerHTML = '<div class="empty-state">' + escapeHtml(t.pick_above) + '</div>';
+    document.getElementById("paneSubtitle").textContent = t.pick_to_start;
+    return;
+  }
+  const tpl = TEMPLATES[state.template];
+  document.getElementById("paneSubtitle").textContent = L(tpl.subtitle);
+
+  // Technique section first
+  const techSec = renderTechniqueSection(tpl);
+  wrap.appendChild(techSec);
+
+  // Then content sections
+  tpl.sections.forEach(sec => {
+    const secEl = document.createElement("div");
+    secEl.className = "form-section";
+    const h = document.createElement("div");
+    h.className = "form-section-title";
+    h.textContent = t[sec.titleKey] || sec.titleKey;
+    secEl.appendChild(h);
+    sec.fields.forEach(f => secEl.appendChild(renderField(f)));
+    wrap.appendChild(secEl);
+  });
+}
+
+function renderTechniqueSection(tpl) {
+  const t = UI[state.lang];
+  const sec = document.createElement("div");
+  sec.className = "form-section";
+  const h = document.createElement("div");
+  h.className = "form-section-title";
+  h.textContent = t.section_technique;
+  sec.appendChild(h);
+
+  if (tpl.sequences.brain) sec.appendChild(renderSeqField("brain", BRAIN_SEQS, t.seq_brain));
+  if (tpl.sequences.spine) sec.appendChild(renderSeqField("spine", SPINE_SEQS, t.seq_spine));
+  return sec;
+}
+
+function renderSeqField(area, allSeqs, label) {
+  const t = UI[state.lang];
+  const tplKey = state.template;
+  const seq = getSeqState(tplKey, area);
+
+  const q = document.createElement("div");
+  q.className = "q";
+  const row = document.createElement("div");
+  row.className = "q-row";
+
+  const lbl = document.createElement("div");
+  lbl.className = "q-label";
+  lbl.textContent = label;
+  row.appendChild(lbl);
+
+  const input = document.createElement("div");
+  input.className = "q-input";
+
+  const opts = document.createElement("div");
+  opts.className = "options";
+  allSeqs.forEach(seqName => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "opt-btn";
+    b.textContent = seqName;
+    if (seq.sel.indexOf(seqName) !== -1) b.classList.add("selected");
+    b.addEventListener("click", () => {
+      const idx = seq.sel.indexOf(seqName);
+      if (idx !== -1) {
+        seq.sel.splice(idx, 1);
+      } else {
+        // Maintain canonical ordering
+        seq.sel = allSeqs.filter(x => seq.sel.indexOf(x) !== -1 || x === seqName);
+      }
+      renderForm();
+      renderPreview();
+      save();
+    });
+    opts.appendChild(b);
+  });
+  input.appendChild(opts);
+
+  // Custom override input
+  const wrap = document.createElement("div");
+  wrap.className = "free-after";
+  const inp = document.createElement("textarea");
+  inp.className = "text-input";
+  inp.placeholder = t.seq_custom_ph;
+  if (seq.custom) inp.value = seq.custom;
+  inp.addEventListener("input", () => {
+    seq.custom = inp.value;
+    renderPreview();
+    save();
+  });
+  wrap.appendChild(inp);
+  input.appendChild(wrap);
+
+  row.appendChild(input);
+  q.appendChild(row);
+  return q;
+}
+
+function renderField(f) {
+  const t = UI[state.lang];
+  const q = document.createElement("div");
+  q.className = "q";
+  const row = document.createElement("div");
+  row.className = "q-row";
+
+  const lbl = document.createElement("div");
+  lbl.className = "q-label";
+  lbl.innerHTML = escapeHtml(L(f.label)) +
+    (f.optional ? '<span class="opt-tag">' + escapeHtml(t.optional_tag) + '</span>' : "");
+  row.appendChild(lbl);
+
+  const input = document.createElement("div");
+  input.className = "q-input";
+
+  if (f.type === "choice" || f.type === "choice-or-text") {
+    const opts = document.createElement("div");
+    opts.className = "options";
+    f.options.forEach(opt => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt-btn" + (opt.neutral ? " neutral-tag" : "");
+      b.textContent = L(opt.v);
+      const ans = state.answers[f.id];
+      if (ans && ans.type === "opt" && ans.k === opt.k) {
+        b.classList.add("selected");
+        if (opt.neutral) b.classList.add("neutral");
+      }
+      b.addEventListener("click", () => {
+        const cur = state.answers[f.id];
+        if (cur && cur.type === "opt" && cur.k === opt.k) {
+          delete state.answers[f.id];
+        } else {
+          state.answers[f.id] = { type: "opt", k: opt.k };
+        }
+        renderForm();
+        renderPreview();
+        save();
+      });
+      opts.appendChild(b);
+    });
+    input.appendChild(opts);
+
+    if (f.type === "choice-or-text") {
+      const wrap = document.createElement("div");
+      wrap.className = "free-after";
+      const inp = (f.free && f.free.textarea)
+        ? document.createElement("textarea")
+        : document.createElement("input");
+      inp.className = "text-input";
+      if (inp.tagName === "INPUT") inp.type = "text";
+      inp.placeholder = (f.free && f.free.ph) ? (UI[state.lang][f.free.ph] || t.free_text) : t.free_text;
+      const ans = state.answers[f.id];
+      if (ans && ans.type === "free") inp.value = ans.text || "";
+      inp.addEventListener("input", () => {
+        const v = inp.value;
+        if (v && v.trim()) {
+          state.answers[f.id] = { type: "free", text: v };
+          opts.querySelectorAll(".opt-btn.selected").forEach(b => {
+            b.classList.remove("selected", "neutral");
+          });
+        } else {
+          delete state.answers[f.id];
+        }
+        renderPreview();
+        save();
+      });
+      wrap.appendChild(inp);
+      input.appendChild(wrap);
+    }
+  } else if (f.type === "text") {
+    const inp = document.createElement("input");
+    inp.type = "text";
+    inp.className = "text-input";
+    const ans = state.answers[f.id];
+    inp.value = (ans && ans.text) ? ans.text : "";
+    inp.addEventListener("input", () => {
+      state.answers[f.id] = { type: "text", text: inp.value };
+      renderPreview();
+      save();
+    });
+    input.appendChild(inp);
+  }
+
+  row.appendChild(input);
+  q.appendChild(row);
+  return q;
+}
+
+/* ===================== Render: preview ===================== */
+function renderPreview() {
+  const pv = document.getElementById("preview");
+  const t = UI[state.lang];
+  if (!state.template) {
+    pv.innerHTML = '<span class="ph">' + escapeHtml(t.preview_empty) + '</span>';
+    return;
+  }
+  pv.innerHTML = previewToHtml(buildFullText());
+}
+
+function buildFullText() {
+  if (!state.template) return "";
+  const tpl = TEMPLATES[state.template];
+  const t = UI[state.lang];
+  const headerLines = [];
+  if (state.patient.name) headerLines.push(t.lbl_patient + ": " + state.patient.name);
+  const idDate = [];
+  if (state.patient.id) idDate.push(t.lbl_id + ": " + state.patient.id);
+  if (state.patient.date) idDate.push(t.lbl_examdate + ": " + dateOrPh(state.patient.date));
+  if (idDate.length) headerLines.push(idDate.join("   "));
+  if (headerLines.length) headerLines.push("");
+  return (headerLines.length ? headerLines.join("\n") + "\n" : "") + tpl.render(state.answers, state.patient, state.lang);
+}
+
+/* ===================== Persistence ===================== */
+const LS_KEY = "ms_builder_state_v2";
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
+}
+function restore() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (obj && typeof obj === "object") {
+      state.lang = obj.lang || "en";
+      state.template = obj.template || null;
+      state.answers = obj.answers || {};
+      state.patient = Object.assign(state.patient, obj.patient || {});
+      state.sequences = obj.sequences || {};
+    }
+  } catch(e) {}
+}
+
+/* ===================== UI chrome i18n apply ===================== */
+function applyChromeI18n() {
+  const t = UI[state.lang];
+  document.documentElement.lang = state.lang;
+
+  document.getElementById("brandTitle").textContent = t.appTitle;
+  document.getElementById("brandSubtitle").textContent = t.appSubtitle;
+  document.getElementById("creditBy").textContent = t.creditBy;
+
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const k = el.getAttribute("data-i18n");
+    if (t[k]) el.textContent = t[k];
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+    const k = el.getAttribute("data-i18n-ph");
+    if (t[k]) el.placeholder = t[k];
+  });
+
+  // Language toggle visual state
+  document.querySelectorAll(".lang-toggle button").forEach(b => {
+    b.classList.toggle("active", b.dataset.lang === state.lang);
+  });
+
+  // Re-render template chooser (cards have lang text)
+  renderChooser();
+  togglePrevSpineField();
+}
+
+/* ===================== Template chooser ===================== */
+function renderChooser() {
+  const wrap = document.getElementById("tplChooser");
+  wrap.innerHTML = "";
+  Object.keys(TEMPLATES).forEach(key => {
+    const tpl = TEMPLATES[key];
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "tpl-card" + (state.template === key ? " selected" : "");
+    btn.dataset.tpl = key;
+    btn.innerHTML =
+      '<div class="num">' + escapeHtml(L(tpl.card.num)) + '</div>' +
+      '<div class="name">' + escapeHtml(L(tpl.card.name)) + '</div>' +
+      '<div class="desc">' + escapeHtml(L(tpl.card.desc)) + '</div>';
+    btn.addEventListener("click", () => selectTemplate(key));
+    wrap.appendChild(btn);
+  });
+}
+
+/* ===================== Wire-up ===================== */
+function selectTemplate(key) {
+  if (state.template !== key) {
+    state.answers = {};
+  }
+  state.template = key;
+  document.querySelectorAll(".tpl-card").forEach(c => {
+    c.classList.toggle("selected", c.dataset.tpl === key);
+  });
+  togglePrevSpineField();
+  renderForm();
+  renderPreview();
+  save();
+}
+
+function togglePrevSpineField() {
+  const wrap = document.getElementById("prevSpineWrap");
+  if (!wrap) return;
+  const tpl = state.template ? TEMPLATES[state.template] : null;
+  const needs = !!(tpl && tpl.needsSpinePrev);
+  wrap.style.display = needs ? "" : "none";
+}
+
+function setLang(lang) {
+  if (lang !== "en" && lang !== "es") return;
+  state.lang = lang;
+  applyChromeI18n();
+  renderForm();
+  renderPreview();
+  save();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  restore();
+
+  // Language toggle clicks
+  document.querySelectorAll(".lang-toggle button").forEach(b => {
+    b.addEventListener("click", () => setLang(b.dataset.lang));
+  });
+
+  // Patient inputs
+  const bind = (id, key) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", () => {
+      state.patient[key] = el.value;
+      renderPreview();
+      save();
+    });
+  };
+  bind("pName", "name");
+  bind("pId", "id");
+  bind("pDate", "date");
+  bind("pPrevBrain", "prevBrain");
+  bind("pPrevSpine", "prevSpine");
+
+  // Restore patient field values
+  ["name","id","date","prevBrain","prevSpine"].forEach(k => {
+    const map = { name:"pName", id:"pId", date:"pDate", prevBrain:"pPrevBrain", prevSpine:"pPrevSpine" };
+    const el = document.getElementById(map[k]);
+    if (el && state.patient[k]) el.value = state.patient[k];
+  });
+
+  // Action buttons
+  document.getElementById("btnCopy").addEventListener("click", async () => {
+    const t = UI[state.lang];
+    if (!state.template) { showToast(t.toast_pickfirst, "error"); return; }
+    const text = plainText(buildFullText());
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(t.toast_copied, "success");
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); showToast(t.toast_copied, "success"); }
+      catch(_){ showToast(t.toast_copyfail, "error"); }
+      finally { ta.remove(); }
+    }
+  });
+
+  document.getElementById("btnDownload").addEventListener("click", () => {
+    const t = UI[state.lang];
+    if (!state.template) { showToast(t.toast_pickfirst, "error"); return; }
+    const text = plainText(buildFullText());
+    const tpl = TEMPLATES[state.template];
+    const stem = (state.patient.name || L(tpl.title)).replace(/[^\w\-\s]/g,"").trim().replace(/\s+/g,"_") || "ms_report";
+    const fname = stem + "_" + (state.patient.date || new Date().toISOString().slice(0,10)) + ".txt";
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 200);
+  });
+
+  document.getElementById("btnReset").addEventListener("click", () => {
+    const t = UI[state.lang];
+    if (!confirm(t.confirm_reset)) return;
+    state.answers = {};
+    state.patient = { name:"", id:"", date:"", prevBrain:"", prevSpine:"" };
+    state.sequences = {};
+    document.getElementById("pName").value = "";
+    document.getElementById("pId").value = "";
+    document.getElementById("pDate").value = "";
+    document.getElementById("pPrevBrain").value = "";
+    const ps = document.getElementById("pPrevSpine"); if (ps) ps.value = "";
+    renderForm();
+    renderPreview();
+    save();
+    showToast(t.toast_reset);
+  });
+
+  // Initial paint
+  applyChromeI18n();
+  renderForm();
+  renderPreview();
+});
+</script>
+</body>
+</html>
